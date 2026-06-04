@@ -56,11 +56,13 @@ class SweepingPolarKinematics:
             'max_angular_velocity', above=0., default=0)
         self.limit_z = (1.0, -1.0)
         self.limit_xy2 = -1.
+        self.limit_z = self.rails[0].get_range()
+        self.limit_xy2 = self.distfrombed**2
         #max_xy = self.rails[0].get_range()[1]
         min_z, max_z = self.rails[0].get_range()
         self.axes_min = toolhead.Coord((-distfrombed, -distfrombed, min_z))
         self.axes_max = toolhead.Coord((distfrombed, distfrombed, max_z))
-
+        self.set_position([0., 0., 0.], "")
     def get_steppers(self):
         return list(self.steppers)
     
@@ -72,12 +74,12 @@ class SweepingPolarKinematics:
         #
         #
         #
-        return [self.distfrombed*math.cos(bed_angle) + self.distfrombed*math.cos(bed_angle+arm_angle), self.distfrombed*math.sin(bed_angle) + self.distfrombed*math.sin(bed_angle+arm_angle),
-                z_pos]
+        return [self.distfrombed*math.cos(bed_angle) + self.distfrombed*math.cos(bed_angle+arm_angle), self.distfrombed*math.sin(bed_angle) + self.distfrombed*math.sin(bed_angle+arm_angle), z_pos]
     
     def set_position(self, newpos, homing_axes):
         for s in self.steppers:
             s.set_position(newpos)
+        
 
     def clear_homing_state(self, clear_axes):
         # XXX - homing not implemented
@@ -90,34 +92,36 @@ class SweepingPolarKinematics:
         homing_state.set_homed_position([0., 0., 0.])
 
     def check_move(self, move):
-        end_pos = move.end_pos
-        xy2 = end_pos[0]**2 + end_pos[1]**2
-        if xy2 > self.limit_xy2:
-            if self.limit_xy2 < 0.:
-                raise move.move_error("Must home axis first")
-            raise move.move_error()
-        if move.axes_d[2]:
-            if end_pos[2] < self.limit_z[0] or end_pos[2] > self.limit_z[1]:
-                if self.limit_z[0] > self.limit_z[1]:
-                    raise move.move_error("Must home axis first")
-                raise move.move_error()
-            # Move with Z - update velocity and accel for slower Z axis
-            z_ratio = move.move_d / abs(move.axes_d[2])
-            move.limit_speed(self.max_z_velocity * z_ratio,
-                             self.max_z_accel * z_ratio)
-        # Slow down near center
-        if move.axes_d[0] or move.axes_d[1]:
-            if self.v_rad_max == 0:
-                return
-            min_dist = distance_to_center(move.start_pos[0:2],
-                                              move.end_pos[0:2])
-            if min_dist == 0:
-                return
-            v_angular = math.sqrt(move.max_cruise_v2) / min_dist
-            if self.v_rad_max < v_angular:
-                scale_radius = self.v_rad_max/v_angular
-                move.limit_speed(self.max_velocity * scale_radius,
-                                 self.max_accel * scale_radius)
+        return
+        
+        # end_pos = move.end_pos
+        # xy2 = end_pos[0]**2 + end_pos[1]**2
+        # if xy2 > self.limit_xy2:
+        #     if self.limit_xy2 < 0.:
+        #         raise move.move_error("Must home axis first")
+        #     raise move.move_error()
+        # if move.axes_d[2]:
+        #     if end_pos[2] < self.limit_z[0] or end_pos[2] > self.limit_z[1]:
+        #         if self.limit_z[0] > self.limit_z[1]:
+        #             raise move.move_error("Must home axis first")
+        #         raise move.move_error()
+        #     # Move with Z - update velocity and accel for slower Z axis
+        #     z_ratio = move.move_d / abs(move.axes_d[2])
+        #     move.limit_speed(self.max_z_velocity * z_ratio,
+        #                      self.max_z_accel * z_ratio)
+        # # Slow down near center
+        # if move.axes_d[0] or move.axes_d[1]:
+        #     if self.v_rad_max == 0:
+        #         return
+        #     min_dist = distance_to_center(move.start_pos[0:2],
+        #                                       move.end_pos[0:2])
+        #     if min_dist == 0:
+        #         return
+        #     v_angular = math.sqrt(move.max_cruise_v2) / min_dist
+        #     if self.v_rad_max < v_angular:
+        #         scale_radius = self.v_rad_max/v_angular
+        #         move.limit_speed(self.max_velocity * scale_radius,
+        #                          self.max_accel * scale_radius)
 
     def get_status(self, eventtime):
         xy_home = "xy" if self.limit_xy2 >= 0. else ""
