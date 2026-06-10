@@ -92,6 +92,18 @@ class SweepingPolarKinematics:
         homing_state.set_homed_position([0., 0., 0.])
 
     def check_move(self, move):
+        if move.axes_d[0] or move.axes_d[1]:
+            if self.v_rad_max == 0:
+                return
+            min_dist = distance_to_center(move.start_pos[0:2],
+                                              move.end_pos[0:2])
+            if min_dist == 0:
+                return
+            v_angular = math.sqrt(move.max_cruise_v2) / min_dist
+            if self.v_rad_max < v_angular:
+                scale_radius = self.v_rad_max/v_angular
+                move.limit_speed(self.max_velocity * scale_radius,
+                                 self.max_accel * scale_radius)
         return
         
         # end_pos = move.end_pos
