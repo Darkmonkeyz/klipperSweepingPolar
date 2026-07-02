@@ -77,6 +77,9 @@ sweeping_polar_stepper_angle_post_fixup(struct stepper_kinematics *sk)
 //     return sk;
 // }
 
+
+
+//This is the structure for setting up each stepper in the sweeping polar stepper kinematics type. you can call it with type r to assign the stepper as a sweeping arm or you can assign it type 'a' to assign it the bed. This then allows the step solvers to pull from the logic above. 
 struct stepper_kinematics * __visible
 sweeping_polar_stepper_alloc(char type, double distfrombed)
 {
